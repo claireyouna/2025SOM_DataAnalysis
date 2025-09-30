@@ -91,6 +91,7 @@ clif_format <- clif_format %>%
   select(-valueuom)
 
 table(clif_format$vital_name) 
+write.csv(clif_format, "clif_format_output.csv", row.names = FALSE)
 ```
 
 
