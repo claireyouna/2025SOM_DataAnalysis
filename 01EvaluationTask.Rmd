@@ -1,10 +1,50 @@
 ---
 title: "01EvaluationTask"
+author: "Claire Youna"
 output: html_document
-date: "2025-09-29"
+date: " `r format(Sys.Data(), '%Y-%m-%d)`"
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r library, include=FALSE}
+library(here)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(lubridate)
+```
+
+```{r data import}
+chartevent <-  read_excel(here("Task", "chartevents3.xlsx"))
+mappingdata <- read.csv(here("Task","mappings.csv"))
+```
+
+```{r data formate, results= 'hide'}
+df_chart <- chartevent %>% 
+  mutate(
+    hadm_id = as.character(hadm_id),
+    charttime = format(as.POSIXct(charttime, tz = "UTC"),
+                       "%Y-%m-%d %H:%M:%S+00:00 UTC"),
+    itemid = as.integer(itemid)
+  )
+df_mapping <- mappingdata %>% 
+  rename(
+    vital_name = `label...vital_name`  
+  )
+```
+
+```{r, table join, results='hide'}
+df_clif <- df_chart %>% 
+  left_join(df_mapping %>% 
+              select(itemid, vital_name, vital_category, meas_site_name),
+            by = "itemid") %>% 
+  select(hadm_id,storetime,vital_name, vital_category, value,valuenum,valueuom ,meas_site_name)
+```
+
+
+
 
