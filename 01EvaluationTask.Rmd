@@ -23,11 +23,11 @@ chartevent <-  read_excel(here("Task", "chartevents3.xlsx"))
 mappingdata <- read.csv(here("Task","mappings.csv"))
 ```
 
-```{r data formate, results= 'hide'}
+```{r data format, results= 'hide'}
 df_chart <- chartevent %>% 
   mutate(
     hadm_id = as.character(hadm_id),
-    charttime = format(as.POSIXct(charttime, tz = "UTC"),
+    storetime = format(as.POSIXct(storetime, tz = "UTC"),
                        "%Y-%m-%d %H:%M:%S+00:00 UTC"),
     itemid = as.integer(itemid)
   )
@@ -42,9 +42,56 @@ df_clif <- df_chart %>%
   left_join(df_mapping %>% 
               select(itemid, vital_name, vital_category, meas_site_name),
             by = "itemid") %>% 
-  select(hadm_id,storetime,vital_name, vital_category, value,valuenum,valueuom ,meas_site_name)
+  select(hadm_id,storetime,vital_name, vital_category, value,valuenum,valueuom, meas_site_name) %>% 
+  rename(
+    hospitalization_id = hadm_id, recorded_dttm = storetime, vital_value = value
+  )
 ```
 
+```{r, clif format}
+table(df_clif$vital_category)
+
+# to only include standard vital sign categories.
+clif_format <-  df_clif %>% 
+  filter(vital_category %in% c("temp_c", "heart_rate", "sbp", "dbp", 
+                               "spo2", "respiratory_rate", "map", 
+                               "height_cm", "weight_kg"),
+          !is.na(valuenum)
+         )   
+clif_format$vital_value = as.numeric(clif_format$"vital_value")
+
+#check if values are all same, then delete extra column
+if (all(clif_format$vital_value == clif_format$valuenum, na.rm = TRUE)) {
+  clif_format <- clif_format %>% select(-valuenum)
+}
+
+# unit check and transform
+
+table(clif_format$valueuom)
+table(clif_format$vital_name) 
+
+## check daily weight column unit is KG/lb
+clif_daily_weight <- clif_format %>%
+   filter(vital_name == "Daily Weight")  
+
+clif_format <- clif_format %>%
+  mutate(vital_value = ifelse(vital_name == "Admission Weight (lbs.)",
+                           vital_value * 0.453592,
+                           vital_value),
+         vital_value = ifelse(vital_name == "Temperature Fahrenheit",
+                           (vital_value - 32) * 5/9,
+                           vital_value),
+         vital_name = ifelse(vital_name == "Admission Weight (lbs.)",
+                        "Admission Weight (Kg)",
+                        vital_name),
+         vital_name = ifelse(vital_name == "Temperature Fahrenheit",
+                        "Temperature Celsius",
+                        vital_name)
+         ) %>% 
+  select(-valueuom)
+
+table(clif_format$vital_name) 
+```
 
 
 

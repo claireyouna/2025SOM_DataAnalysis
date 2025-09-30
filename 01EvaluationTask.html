@@ -11,7 +11,7 @@
 
 <meta name="author" content="Claire Youna" />
 
-<meta name="date" content="2025-09-29" />
+<meta name="date" content="2025-09-30" />
 
 <title>01EvaluationTask</title>
 
@@ -352,7 +352,7 @@ display: none;
 
 <h1 class="title toc-ignore">01EvaluationTask</h1>
 <h4 class="author">Claire Youna</h4>
-<h4 class="date">2025-09-29</h4>
+<h4 class="date">2025-09-30</h4>
 
 </div>
 
@@ -362,7 +362,7 @@ mappingdata &lt;- read.csv(here(&quot;Task&quot;,&quot;mappings.csv&quot;))</cod
 <pre class="r"><code>df_chart &lt;- chartevent %&gt;% 
   mutate(
     hadm_id = as.character(hadm_id),
-    charttime = format(as.POSIXct(charttime, tz = &quot;UTC&quot;),
+    storetime = format(as.POSIXct(storetime, tz = &quot;UTC&quot;),
                        &quot;%Y-%m-%d %H:%M:%S+00:00 UTC&quot;),
     itemid = as.integer(itemid)
   )
@@ -374,7 +374,104 @@ df_mapping &lt;- mappingdata %&gt;%
   left_join(df_mapping %&gt;% 
               select(itemid, vital_name, vital_category, meas_site_name),
             by = &quot;itemid&quot;) %&gt;% 
-  select(hadm_id,storetime,vital_name, vital_category, value,valuenum,valueuom ,meas_site_name)</code></pre>
+  select(hadm_id,storetime,vital_name, vital_category, value,valuenum,valueuom, meas_site_name) %&gt;% 
+  rename(
+    hospitalization_id = hadm_id, recorded_dttm = storetime, vital_value = value
+  )</code></pre>
+<pre class="r"><code>table(df_clif$vital_category)</code></pre>
+<pre><code>## 
+##              dbp       heart_rate        height_cm              map 
+##            14367            13913               71            14390 
+## MAPPED ELSEWHERE       NO MAPPING respiratory_rate              sbp 
+##             3446            29394            13913            14366 
+##             spo2           temp_c        weight_kg 
+##            13540             7564              806</code></pre>
+<pre class="r"><code># to only include standard vital sign categories.
+clif_format &lt;-  df_clif %&gt;% 
+  filter(vital_category %in% c(&quot;temp_c&quot;, &quot;heart_rate&quot;, &quot;sbp&quot;, &quot;dbp&quot;, 
+                               &quot;spo2&quot;, &quot;respiratory_rate&quot;, &quot;map&quot;, 
+                               &quot;height_cm&quot;, &quot;weight_kg&quot;),
+          !is.na(valuenum)
+         )   
+clif_format$vital_value = as.numeric(clif_format$&quot;vital_value&quot;)
+
+#check if values are all same, then delete extra column
+if (all(clif_format$vital_value == clif_format$valuenum, na.rm = TRUE)) {
+  clif_format &lt;- clif_format %&gt;% select(-valuenum)
+}
+
+# unit check and transform
+
+table(clif_format$valueuom)</code></pre>
+<pre><code>## 
+##        %      Â°C      Â°F      bpm       cm insp/min       kg     mmHg 
+##    13540      391     3379    13913       71    13913      570    43123</code></pre>
+<pre class="r"><code>table(clif_format$vital_name) </code></pre>
+<pre><code>## 
+##                 Admission Weight (Kg)               Admission Weight (lbs.) 
+##                                   129                                   236 
+##                      ART BP Diastolic                           ART BP Mean 
+##                                   486                                   488 
+##                       ART BP Systolic     Arterial Blood Pressure diastolic 
+##                                   486                                  5524 
+##          Arterial Blood Pressure mean      Arterial Blood Pressure systolic 
+##                                  5560                                  5525 
+##                          Daily Weight                            Heart Rate 
+##                                   441                                 13913 
+##                           Height (cm)  Manual Blood Pressure Diastolic Left 
+##                                    71                                     3 
+## Manual Blood Pressure Diastolic Right   Manual Blood Pressure Systolic Left 
+##                                     5                                     3 
+##  Manual Blood Pressure Systolic Right Non Invasive Blood Pressure diastolic 
+##                                     5                                  8349 
+##      Non Invasive Blood Pressure mean  Non Invasive Blood Pressure systolic 
+##                                  8342                                  8347 
+##           O2 saturation pulseoxymetry                      Respiratory Rate 
+##                                 13540                                 13913 
+##                   Temperature Celsius                Temperature Fahrenheit 
+##                                   391                                  3379</code></pre>
+<pre class="r"><code>## check daily weight column unit is KG/lb
+clif_daily_weight &lt;- clif_format %&gt;%
+   filter(vital_name == &quot;Daily Weight&quot;)  
+
+clif_format &lt;- clif_format %&gt;%
+  mutate(vital_value = ifelse(vital_name == &quot;Admission Weight (lbs.)&quot;,
+                           vital_value * 0.453592,
+                           vital_value),
+         vital_value = ifelse(vital_name == &quot;Temperature Fahrenheit&quot;,
+                           (vital_value - 32) * 5/9,
+                           vital_value),
+         vital_name = ifelse(vital_name == &quot;Admission Weight (lbs.)&quot;,
+                        &quot;Admission Weight (Kg)&quot;,
+                        vital_name),
+         vital_name = ifelse(vital_name == &quot;Temperature Fahrenheit&quot;,
+                        &quot;Temperature Celsius&quot;,
+                        vital_name)
+         ) %&gt;% 
+  select(-valueuom)
+
+table(clif_format$vital_name) </code></pre>
+<pre><code>## 
+##                 Admission Weight (Kg)                      ART BP Diastolic 
+##                                   365                                   486 
+##                           ART BP Mean                       ART BP Systolic 
+##                                   488                                   486 
+##     Arterial Blood Pressure diastolic          Arterial Blood Pressure mean 
+##                                  5524                                  5560 
+##      Arterial Blood Pressure systolic                          Daily Weight 
+##                                  5525                                   441 
+##                            Heart Rate                           Height (cm) 
+##                                 13913                                    71 
+##  Manual Blood Pressure Diastolic Left Manual Blood Pressure Diastolic Right 
+##                                     3                                     5 
+##   Manual Blood Pressure Systolic Left  Manual Blood Pressure Systolic Right 
+##                                     3                                     5 
+## Non Invasive Blood Pressure diastolic      Non Invasive Blood Pressure mean 
+##                                  8349                                  8342 
+##  Non Invasive Blood Pressure systolic           O2 saturation pulseoxymetry 
+##                                  8347                                 13540 
+##                      Respiratory Rate                   Temperature Celsius 
+##                                 13913                                  3770</code></pre>
 
 
 
