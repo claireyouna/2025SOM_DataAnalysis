@@ -2,7 +2,7 @@
 title: "01EvaluationTask"
 author: "Claire Youna"
 output: html_document
-date: " `r format(Sys.Data(), '%Y-%m-%d)`"
+date: " `r format(Sys.Date(), '%Y-%m-%d')`"
 
 ---
 
