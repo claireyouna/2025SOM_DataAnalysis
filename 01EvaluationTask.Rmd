@@ -23,13 +23,12 @@ chartevent <-  read_excel(here("Task", "chartevents3.xlsx"))
 mappingdata <- read.csv(here("Task","mappings.csv"))
 ```
 
-```{r data format, results= 'hide'}
+```{r original data format, results= 'hide'}
 df_chart <- chartevent %>% 
   mutate(
     hadm_id = as.character(hadm_id),
-    storetime = format(as.POSIXct(storetime, tz = "UTC"),
-                       "%Y-%m-%d %H:%M:%S+00:00 UTC"),
-    itemid = as.integer(itemid)
+      storetime = as.POSIXct(storetime, tz = "UTC"),
+     itemid = as.integer(itemid)
   )
 df_mapping <- mappingdata %>% 
   rename(
@@ -91,7 +90,7 @@ clif_format <- clif_format %>%
   select(-valueuom)
 
 table(clif_format$vital_name) 
-write.csv(clif_format, "clif_format_output.csv", row.names = FALSE)
+write.csv(clif_format, "vitals.csv", row.names = FALSE)
 ```
 
 
