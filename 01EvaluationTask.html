@@ -11,7 +11,7 @@
 
 <meta name="author" content="Claire Youna" />
 
-<meta name="date" content="2025-09-30" />
+<meta name="date" content="2025-10-01" />
 
 <title>01EvaluationTask</title>
 
@@ -352,7 +352,7 @@ display: none;
 
 <h1 class="title toc-ignore">01EvaluationTask</h1>
 <h4 class="author">Claire Youna</h4>
-<h4 class="date">2025-09-30</h4>
+<h4 class="date">2025-10-01</h4>
 
 </div>
 
@@ -362,9 +362,8 @@ mappingdata &lt;- read.csv(here(&quot;Task&quot;,&quot;mappings.csv&quot;))</cod
 <pre class="r"><code>df_chart &lt;- chartevent %&gt;% 
   mutate(
     hadm_id = as.character(hadm_id),
-    storetime = format(as.POSIXct(storetime, tz = &quot;UTC&quot;),
-                       &quot;%Y-%m-%d %H:%M:%S+00:00 UTC&quot;),
-    itemid = as.integer(itemid)
+      storetime = as.POSIXct(storetime, tz = &quot;UTC&quot;),
+     itemid = as.integer(itemid)
   )
 df_mapping &lt;- mappingdata %&gt;% 
   rename(
@@ -472,6 +471,7 @@ table(clif_format$vital_name) </code></pre>
 ##                                  8347                                 13540 
 ##                      Respiratory Rate                   Temperature Celsius 
 ##                                 13913                                  3770</code></pre>
+<pre class="r"><code>write.csv(clif_format, &quot;vitals.csv&quot;, row.names = FALSE)</code></pre>
 
 
 
